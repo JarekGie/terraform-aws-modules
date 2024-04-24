@@ -1,11 +1,7 @@
-data "aws_caller_identity" "curent" {}
+data "aws_caller_identity" "current" {}
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = var.bucket
+  bucket = "${data.aws_caller_identity.current.account_id}-${var.bucket}"
 
-  # Prevent accidental deletion of this S3 bucket
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 resource "aws_s3_bucket_versioning" "enabled" {
   bucket = aws_s3_bucket.terraform_state.id
