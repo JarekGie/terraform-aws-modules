@@ -3,7 +3,7 @@
 # Variables
 ENVIRONMENT ?= DRP
 TERRAFORM_DIR := examples
-TF_PLAN := $(TERRAFORM_DIR)/tfplan
+TF_PLAN := ./tfplan
 
 SHELL := /bin/bash
 .SHELLFLAGS := -c
