@@ -59,7 +59,7 @@ plan: format validate
 .PHONY: apply
 apply: plan
 	@echo "Applying Terraform changes..."
-	cd $(TERRAFORM_DIR) && terraform apply --auto-aprove $(TF_PLAN)
+	cd $(TERRAFORM_DIR) && terraform apply --auto-approve $(TF_PLAN)
 
 # Destroy the Terraform-managed infrastructure
 .PHONY: destroy
