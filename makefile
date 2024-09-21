@@ -5,6 +5,11 @@ ENVIRONMENT ?= DRP
 TERRAFORM_DIR := examples
 TF_PLAN := ./tfplan
 
+.PHONY: export-env
+export-env:
+	@echo "TERRAFORM_DIR=$(TERRAFORM_DIR)" > .env
+	@echo "ENVIRONMENT=$(ENVIRONMENT)" >> .env
+	
 SHELL := /bin/bash
 .SHELLFLAGS := -c
 

@@ -14,8 +14,18 @@ jobs:
       # Krok 1: Pobierz repozytorium
       - name: Checkout repository
         uses: actions/checkout@v3
+     # Krok 2: Uruchom Makefile i eksportuj zmienne do pliku .env
+      - name: Export Makefile Variables
+        run: make export-env
 
-      # Krok 2: Konfiguracja poświadczeń AWS
+      # Krok 3: Odczytaj zmienne środowiskowe z pliku .env
+      - name: Load Environment Variables
+        run: |
+          echo "Loading environment variables from .env"
+          set -a
+          source .env
+          set +a
+      # Krok 4: Konfiguracja poświadczeń AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -23,16 +33,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}  # Użycie zmiennej AWS_REGION z Variables GitHub Actions
 
-      # Krok 3: Instalacja Terraform
+      # Krok 5: Instalacja Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0  # Możesz zmienić na inną wersję
 
-      # Krok 4: Inicjalizacja Terraform (przygotowanie do użycia pliku planu)
+      # Krok 6: Inicjalizacja Terraform (przygotowanie do użycia pliku planu)
       - name: Terraform Init
         run: terraform init -input=false
 
-      # Krok 5: Wykonanie terraform apply z istniejącego pliku tfplan
+      # Krok 7: Wykonanie terraform apply z istniejącego pliku tfplan
       - name: Terraform Apply
         run: terraform apply -auto-approve $(TERRAFORM_DIR)/tfplan
