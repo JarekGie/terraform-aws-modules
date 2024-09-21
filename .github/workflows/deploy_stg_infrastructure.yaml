@@ -1,0 +1,38 @@
+name: Apply Terraform Plan on Staging Merge
+
+on:
+  push:
+    branches:
+      - staging  # Workflow uruchomi się po zmergowaniu kodu do gałęzi staging
+
+jobs:
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+
+    steps:
+      # Krok 1: Pobierz repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Krok 2: Konfiguracja poświadczeń AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}  # Użycie zmiennej AWS_REGION z Variables GitHub Actions
+
+      # Krok 3: Instalacja Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0  # Możesz zmienić na inną wersję
+
+      # Krok 4: Inicjalizacja Terraform (przygotowanie do użycia pliku planu)
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      # Krok 5: Wykonanie terraform apply z istniejącego pliku tfplan
+      - name: Terraform Apply
+        run: terraform apply -auto-approve $(TERRAFORM_DIR)/tfplan

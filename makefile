@@ -3,7 +3,7 @@
 # Variables
 ENVIRONMENT ?= DRP
 TERRAFORM_DIR := examples
-TF_PLAN := $(TERRAFORM_DIR)/tfplan
+TF_PLAN := ./tfplan
 
 SHELL := /bin/bash
 .SHELLFLAGS := -c
@@ -49,7 +49,7 @@ validate:
 plan: format validate
 	@echo "Planning Terraform changes..."
 	cd $(TERRAFORM_DIR) && terraform plan -out=$(TF_PLAN)
-
+	cd $(TERRAFORM_DIR) && terraform show -no-color tfplan > tfplan.txt
 # Apply the changes required to reach the desired state
 .PHONY: apply
 apply: plan
