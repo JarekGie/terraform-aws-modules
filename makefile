@@ -58,7 +58,7 @@ apply: plan
 		exit 1; \
 	fi
 	@echo "Applying Terraform changes..."
-	cd $(TERRAFORM_DIR) && terraform apply $(TF_PLAN)
+	cd $(TERRAFORM_DIR) && terraform apply --auto-aprove $(TF_PLAN)
 
 # Destroy the Terraform-managed infrastructure
 .PHONY: destroy

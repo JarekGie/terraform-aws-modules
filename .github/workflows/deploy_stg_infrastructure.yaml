@@ -14,7 +14,6 @@ jobs:
       # Krok 1: Pobierz repozytorium
       - name: Checkout repository
         uses: actions/checkout@v3
-
       # Krok 2: Konfiguracja poświadczeń AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -31,8 +30,8 @@ jobs:
 
       # Krok 4: Inicjalizacja Terraform (przygotowanie do użycia pliku planu)
       - name: Terraform Init
-        run: terraform init -input=false
+        run: make init
 
       # Krok 5: Wykonanie terraform apply z istniejącego pliku tfplan
       - name: Terraform Apply
-        run: terraform apply -auto-approve $(TERRAFORM_DIR)/tfplan
+        run: make apply
