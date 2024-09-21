@@ -58,10 +58,6 @@ plan: format validate
 # Apply the changes required to reach the desired state
 .PHONY: apply
 apply: plan
-	@if [ ! -f $(TF_PLAN) ]; then \
-		echo "Terraform plan file does not exist. Run 'make plan' first."; \
-		exit 1; \
-	fi
 	@echo "Applying Terraform changes..."
 	cd $(TERRAFORM_DIR) && terraform apply --auto-aprove $(TF_PLAN)
 
