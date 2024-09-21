@@ -1,0 +1,71 @@
+name: Test infrastructure Workflow
+
+on:
+  pull_request:
+    branches:
+      - staging  # Workflow uruchomi się dla PR do staging
+
+jobs:
+  terraform:
+    name: Terraform Init, Fmt, Validate, and Plan
+    runs-on: ubuntu-latest
+
+    steps:
+      # Krok 1: Pobierz repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Krok 2: Konfiguracja poświadczeń AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}  # Użycie zmiennej zadeklarowanej jako Variable w GitHub Actions
+
+      # Krok 3: Instalacja Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0  # Możesz zmienić na inną wersję
+
+      # Krok 4: Sprawdzenie ścieżki
+      - name: Check path
+        run: pwd
+
+      # Krok 5: Inicjalizacja Terraform
+      - name: Terraform Init
+        run: make init
+
+      # Krok 6: Planowanie Terraform dla push do main i PR do staging
+      - name: Terraform Plan
+        run: make plan
+
+      # Krok 7: Zapis wyniku `terraform plan` jako komentarz dla PR
+      - name: Add PR comment with Terraform Plan
+        if: github.event_name == 'pull_request'
+        id: tf-plan-comment
+        run: echo "Terraform Plan has been run for PR to staging"
+
+      # Krok 8: Wczytanie i dodanie wyniku planu do komentarza dla PR
+      - name: Post Plan as PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prAuthor = context.payload.pull_request.user.login;
+            const planOutput = require('fs').readFileSync('examples/tfplan.txt', 'utf8');
+            const commentBody = `
+            @${prAuthor}, here is the result of the Terraform plan:
+
+            \`\`\`terraform
+            ${planOutput}
+            \`\`\`
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
