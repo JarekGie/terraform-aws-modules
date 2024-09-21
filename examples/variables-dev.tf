@@ -1,8 +1,8 @@
 variable "bucket" {
-  default = "testowy-bucket-ernesta"
+  default = "tfstate-bucket"
 }
 variable "dynamodb_table_name" {
-  default = "testowy-bucket-ernesta"
+  default = "tfstate-bucket"
 }
 variable "region" {
   default = "eu-central-1"
