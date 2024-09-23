@@ -58,5 +58,13 @@ resource "aws_eip" "nat" {
     "Name" = "${var.project_name}-eip-nat"
   }
 }
+resource "aws_internet_gateway" "main" {
+  count = var.enable_nat_gateway ? 1 : 0
 
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.project_name}-internet-gateway"
+  }
+}
 # Add routing tables and other necessary components
