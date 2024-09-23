@@ -34,7 +34,11 @@ variable "enable_nat_gateway" {
   type        = bool
   default     = true
 }
-
+variable "enable_internet_gateway" {
+  description = "Enable NAT gateway for private subnets"
+  type        = bool
+  default     = true
+}
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

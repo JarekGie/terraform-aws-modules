@@ -56,7 +56,26 @@ jobs:
       - name: Terraform Plan for current PR
         working-directory: examples/network
         run: terraform plan -out=tfplan-pr
-
+      - name: Post Plan as PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prAuthor = context.payload.pull_request.user.login;
+            const planOutput = require('fs').readFileSync('examples/tfplan.txt', 'utf8');
+            const commentBody = `
+            @${prAuthor}, here is the result of the Terraform plan:
+            \`\`\`terraform
+            ${planOutput}
+            \`\`\`
+            `;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
       # Krok 7: Generowanie wyników Infracost dla bieżącego PR
       - name: Run Infracost on current PR
         working-directory: examples/network
