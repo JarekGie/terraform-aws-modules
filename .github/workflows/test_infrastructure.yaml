@@ -69,3 +69,24 @@ jobs:
               repo: context.repo.repo,
               body: commentBody
             });
+      - name: Install Infracost
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+          echo "infracost" >> $GITHUB_PATH  # Dodaj Infracost do PATH
+
+      # Krok 9: Generowanie wyników Infracost na podstawie pliku tfplan
+      - name: Run Infracost
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}  # API Key jako zmienna środowiskowa
+        run: |
+          infracost breakdown --path=tfplan --format json --out-file ../infracost-output.json
+
+
+      # Krok 10: Zapis wyników Infracost jako komentarz w PR
+      # - name: Post Infracost Comment to PR
+      #   uses: infracost/actions-comment@v1
+      #   with:
+      #     path: infracost-output.json
+      #     behavior: update  # Zaktualizuje istniejący komentarz zamiast tworzyć nowy za każdym razem
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+     
