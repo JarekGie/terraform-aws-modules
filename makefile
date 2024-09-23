@@ -2,7 +2,7 @@
 
 # Variables
 ENVIRONMENT ?= DRP
-TERRAFORM_DIR := examples
+TERRAFORM_DIR := examples/network
 TF_PLAN := ./tfplan
 
 .PHONY: export-env
