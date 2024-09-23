@@ -1,8 +1,8 @@
 terraform {
   backend "s3" {
-    bucket         = "537124936209-tfstate-bucket"
+    bucket         = "613448424242-testowy-bucket-ernesta"
     key            = "stg/terraform.tfstate"
     region         = "eu-central-1"
-    dynamodb_table = "tfstate-bucket"
+    dynamodb_table = "testowy-bucket-ernesta"
   }
 }
