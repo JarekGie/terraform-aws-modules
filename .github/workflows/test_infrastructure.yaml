@@ -1,0 +1,86 @@
+name: Test infrastructure Workflow
+
+on:
+  pull_request:
+    branches:
+      - staging  # Workflow uruchomi się dla PR do staging
+
+jobs:
+  terraform:
+    name: Terraform Init, Fmt, Validate, Plan, and Infracost
+    runs-on: ubuntu-latest
+
+    steps:
+      # Krok 1: Pobierz repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Potrzebne, aby pobrać pełną historię repozytorium
+
+      # Krok 2: Konfiguracja poświadczeń AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Krok 3: Instalacja Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+      - name: Install Infracost
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+          echo "infracost" >> $GITHUB_PATH  # Dodaj Infracost do PATH
+
+      # Krok 4: Pobranie planu Terraform z bazowej gałęzi PR
+      - name: Checkout base branch for comparison
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          git checkout ${{ github.event.pull_request.base.ref }}
+          cd examples/network
+          terraform init -input=false
+          terraform plan -out=tfplan-base
+
+      # Krok 5: Generowanie kosztów Infracost dla bazowej gałęzi PR
+      - name: Run Infracost on base branch
+        working-directory: examples/network
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost breakdown --path=tfplan-base --format json --out-file infracost-base.json
+
+      # Krok 6: Planowanie Terraform dla aktualnego PR i zapis wyniku do pliku tfplan
+      - name: Terraform Plan for current PR
+        working-directory: examples/network
+        run: terraform plan -out=tfplan-pr
+
+      # Krok 7: Generowanie wyników Infracost dla bieżącego PR
+      - name: Run Infracost on current PR
+        working-directory: examples/network
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost breakdown --path=tfplan-pr --format json --out-file infracost-pr.json
+
+      # Krok 8: Porównanie kosztów między PR a bazową gałęzią
+      - name: Infracost Diff
+        working-directory: examples/network
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost diff --path=infracost-pr.json --compare-to=infracost-base.json --format json --out-file infracost-diff.json
+
+      # Krok 9: Zapis wyników Infracost jako komentarz w PR
+      - name: Post Infracost comment
+        working-directory: examples/network
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+        run: |
+          infracost comment github --path=infracost-diff.json \
+                                   --repo=$GITHUB_REPOSITORY \
+                                   --github-token=${{ secrets.GITHUB_TOKEN }} \
+                                   --pull-request=${{ github.event.pull_request.number }} \
+                                   --behavior=update

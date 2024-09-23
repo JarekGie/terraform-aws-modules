@@ -2,9 +2,14 @@
 
 # Variables
 ENVIRONMENT ?= DRP
-TERRAFORM_DIR := examples
+TERRAFORM_DIR := examples/network
 TF_PLAN := ./tfplan
 
+.PHONY: export-env
+export-env:
+	@echo "TERRAFORM_DIR=$(TERRAFORM_DIR)" > .env
+	@echo "ENVIRONMENT=$(ENVIRONMENT)" >> .env
+	
 SHELL := /bin/bash
 .SHELLFLAGS := -c
 
@@ -49,16 +54,12 @@ validate:
 plan: format validate
 	@echo "Planning Terraform changes..."
 	cd $(TERRAFORM_DIR) && terraform plan -out=$(TF_PLAN)
-
+	cd $(TERRAFORM_DIR) && terraform show -no-color tfplan > tfplan.txt
 # Apply the changes required to reach the desired state
 .PHONY: apply
 apply: plan
-	@if [ ! -f $(TF_PLAN) ]; then \
-		echo "Terraform plan file does not exist. Run 'make plan' first."; \
-		exit 1; \
-	fi
 	@echo "Applying Terraform changes..."
-	cd $(TERRAFORM_DIR) && terraform apply $(TF_PLAN)
+	cd $(TERRAFORM_DIR) && terraform apply --auto-approve $(TF_PLAN)
 
 # Destroy the Terraform-managed infrastructure
 .PHONY: destroy
