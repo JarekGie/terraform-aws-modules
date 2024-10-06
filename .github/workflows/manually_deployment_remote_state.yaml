@@ -1,10 +1,20 @@
-name: Test infrastructure Workflow
+name: Manually deployment of remote state 
 
 on:
-  pull_request:
-    branches:
-      - staging  # Workflow uruchomi się dla PR do staging
-
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "The name of branch"
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  actions: read
+  security-events: write
+env:
+  terraform_dir: "examples/remote_state"
 jobs:
   terraform:
     name: Terraform Init, Fmt, Validate, Plan, and Infracost
@@ -24,9 +34,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
-          
-      - name: Show aws credentials
-        run: aws sts get-caller-identity
 
       # Krok 3: Instalacja Terraform
       - name: Set up Terraform
@@ -43,13 +50,13 @@ jobs:
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }}
           git checkout ${{ github.event.pull_request.base.ref }}
-          cd examples/network
+          cd ${{ env.terraform_dir }}
           terraform init -input=false
           terraform plan -out=tfplan-base
 
       # Krok 5: Generowanie kosztów Infracost dla bazowej gałęzi PR
       - name: Run Infracost on base branch
-        working-directory: examples/network
+        working-directory: ${{ env.terraform_dir }}
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         run: |
@@ -57,7 +64,7 @@ jobs:
 
       # Krok 6: Planowanie Terraform dla aktualnego PR i zapis wyniku do pliku tfplan
       - name: Terraform Plan for current PR
-        working-directory: examples/network
+        working-directory: ${{ env.terraform_dir }}
         run: terraform plan -out=tfplan-pr
       - name: Post Plan as PR Comment
         if: github.event_name == 'pull_request'
@@ -81,7 +88,7 @@ jobs:
             });
       # Krok 7: Generowanie wyników Infracost dla bieżącego PR
       - name: Run Infracost on current PR
-        working-directory: examples/network
+        working-directory: ${{ env.terraform_dir }}
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         run: |
@@ -89,7 +96,7 @@ jobs:
 
       # Krok 8: Porównanie kosztów między PR a bazową gałęzią
       - name: Infracost Diff
-        working-directory: examples/network
+        working-directory: ${{ env.terraform_dir }}
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         run: |
@@ -97,7 +104,7 @@ jobs:
 
       # Krok 9: Zapis wyników Infracost jako komentarz w PR
       - name: Post Infracost comment
-        working-directory: examples/network
+        working-directory: ${{ env.terraform_dir }}
         env:
           INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
         run: |
