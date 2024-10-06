@@ -1,6 +1,5 @@
 module "vpc" {
-  source = "../../modules/network"
-
+  source             = "github.com/JarekGie/terraform-aws-modules//modules/network?ref=0.0.12"
   region             = "eu-central-1"
   project_name       = "test"
   cidr               = "10.0.0.0/16"
