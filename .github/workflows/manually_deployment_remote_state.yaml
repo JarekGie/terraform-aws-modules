@@ -1,4 +1,4 @@
-name: Manually deployment of remote state 
+name: Manually deployment of remote state
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ env:
   terraform_dir: "examples/remote_state"
 jobs:
   terraform:
-    name: Terraform Init, Fmt, Validate, Plan, and Infracost
+    name: Terraform Init, Fmt, Validate, Plan, Apply, and Infracost
     runs-on: ubuntu-latest
 
     steps:
@@ -40,76 +40,13 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
-      - name: Install Infracost
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
-          echo "infracost" >> $GITHUB_PATH  # Dodaj Infracost do PATH
 
-      # Krok 4: Pobranie planu Terraform z bazowej gałęzi PR
-      - name: Checkout base branch for comparison
-        run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          git checkout ${{ github.event.pull_request.base.ref }}
-          cd ${{ env.terraform_dir }}
-          terraform init -input=false
-          terraform plan -out=tfplan-base
-
-      # Krok 5: Generowanie kosztów Infracost dla bazowej gałęzi PR
-      - name: Run Infracost on base branch
-        working-directory: ${{ env.terraform_dir }}
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-        run: |
-          infracost breakdown --path=tfplan-base --format json --out-file infracost-base.json
-
-      # Krok 6: Planowanie Terraform dla aktualnego PR i zapis wyniku do pliku tfplan
-      - name: Terraform Plan for current PR
+      # Krok 4: Planowanie Terraform dla aktualnego PR
+      - name: Terraform Plan
         working-directory: ${{ env.terraform_dir }}
         run: terraform plan -out=tfplan-pr
-      - name: Post Plan as PR Comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const prAuthor = context.payload.pull_request.user.login;
-            const planOutput = require('fs').readFileSync('examples/tfplan.txt', 'utf8');
-            const commentBody = `
-            @${prAuthor}, here is the result of the Terraform plan:
-            \`\`\`terraform
-            ${planOutput}
-            \`\`\`
-            `;
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: commentBody
-            });
-      # Krok 7: Generowanie wyników Infracost dla bieżącego PR
-      - name: Run Infracost on current PR
-        working-directory: ${{ env.terraform_dir }}
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-        run: |
-          infracost breakdown --path=tfplan-pr --format json --out-file infracost-pr.json
 
-      # Krok 8: Porównanie kosztów między PR a bazową gałęzią
-      - name: Infracost Diff
+      # Krok 5: Terraform Apply (z opcją auto-approve, aby nie wymagać interakcji użytkownika)
+      - name: Terraform Apply
         working-directory: ${{ env.terraform_dir }}
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-        run: |
-          infracost diff --path=infracost-pr.json --compare-to=infracost-base.json --format json --out-file infracost-diff.json
-
-      # Krok 9: Zapis wyników Infracost jako komentarz w PR
-      - name: Post Infracost comment
-        working-directory: ${{ env.terraform_dir }}
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-        run: |
-          infracost comment github --path=infracost-diff.json \
-                                   --repo=$GITHUB_REPOSITORY \
-                                   --github-token=${{ secrets.GITHUB_TOKEN }} \
-                                   --pull-request=${{ github.event.pull_request.number }} \
-                                   --behavior=update
+        run: terraform apply -input=false -auto-approve tfplan-pr
