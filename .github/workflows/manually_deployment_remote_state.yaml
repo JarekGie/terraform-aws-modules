@@ -41,6 +41,10 @@ jobs:
         with:
           terraform_version: 1.5.0
 
+      # Krok 4: Inicjalizowanie Terraform
+      - name: Terraform Init
+        working-directory: ${{ env.terraform_dir }}
+        run: terraform init
       # Krok 4: Planowanie Terraform dla aktualnego PR
       - name: Terraform Plan
         working-directory: ${{ env.terraform_dir }}
